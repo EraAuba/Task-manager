@@ -3,31 +3,27 @@ import calendar
 from tkinter import * 
 from tkinter import ttk
 
-# список всех задач
-tasks = []
-
 # списки приоритетов где сохраняются задачи по приоритету
 important = []
 notImportant = []
 useless = []
 
 # добавление задачи
-def add_task_to_list():
+def add_task_to_list(name_entry, tasks_table, priority_combo, day_entry):
     '''Бұл функция словарьді списокқа қосады, осы жерде словарь бізде бір задача,
     ал список болса, задачалардың қосындысы'''
     task = {}
     now = dt.datetime.now()
 
     # имя задачи и описание его
-    taskname = input('Тапсырманың атын енгіз: ')
-    priority = input('Тапсырма қандай приоритетте (маңызды, маңызды емес, керек жоқ): ')
+    taskname = name_entry.get()
+    priority = priority_combo.get()
 
     # выбрать дедлайн из календаря
     now_ded = dt.datetime.now()
     year = now_ded.year
     month = now_ded.month
-    print(calendar.month(year, month))
-    day = int(input("Дедлайн күнін еңгізініз: "))
+    day = int(day_entry.get())
 
     # если дата дедлайна старая чем дата создания проверка
     if day>=now_ded.day: 
@@ -37,6 +33,12 @@ def add_task_to_list():
             task['дата'] = now.strftime("%d-%m-%Y")
             task['дедлайн'] = '{}-{}-{}'.format(day, month, year)
             important.append(task)
+            # обновляем Listbox
+            tasks_table.insert("", "end", values=(
+                task['аты'],
+                task['приоритет'],
+                task['дедлайн']
+            ))
             return important
         elif priority == 'маңызды емес':
             task['аты'] = taskname
@@ -44,6 +46,12 @@ def add_task_to_list():
             task['дата'] = now.strftime("%d-%m-%Y")
             task['дедлайн'] = '{}-{}-{}'.format(day, month, year)
             notImportant.append(task)
+            # обновляем Listbox
+            tasks_table.insert("", "end", values=(
+                task['аты'],
+                task['приоритет'],
+                task['дедлайн']
+            ))
             return notImportant
         elif priority == 'керек жоқ':
             task['аты'] = taskname
@@ -51,125 +59,124 @@ def add_task_to_list():
             task['дата'] = now.strftime("%d-%m-%Y")
             task['дедлайн'] = '{}-{}-{}'.format(day, month, year)
             useless.append(task)
+            # обновляем Listbox
+            tasks_table.insert("", "end", values=(
+                task['аты'],
+                task['приоритет'],
+                task['дедлайн']
+            ))
             return useless
         else:
             print('Приоритетті дұрыс енгізіңіз!')
     else:
         print('Дедлайн датасы ескі болмау керек')
 
-# быстрая сортировка
-def quick_sort(arr, key):
-    """Тез сұрыптау алгоритмі"""
-    if len(arr) <= 1:
-        return arr
-    pivot = arr[len(arr) // 2][key]  # выбираем опорный элемент (середина)
-    left = [x for x in arr if x[key] < pivot]   # элементы меньше опорного
-    middle = [x for x in arr if x[key] == pivot]  # равные опорному
-    right = [x for x in arr if x[key] > pivot]  # элементы больше опорного
-    return quick_sort(left, key) + middle + quick_sort(right, key)
+def change_task(tasks_table, name_entry, priority_combo, day_entry):
 
-# найти нужную задачу
-def find_task(name):
-    # находим нужную задачу
-    for sublist in tasks:
-        for task in sublist:
-            if task['аты'] == name:
-                return task
-    return 'Ондай тапсырма жоқ'
+    selected = tasks_table.selection()
+    if not selected:
+        return
 
-# удаление из старого списка приоритета
-def del_old_task(task, new_priority):
-    for sublist in tasks:
-        if task in sublist:
-            sublist.remove(task)
-    
-    # добавить в новый
-    if new_priority == 'маңызды':
-        important.append(task)
-    elif new_priority == 'маңызды емес':
-        notImportant.append(task)
-    elif new_priority == 'керек жоқ':
-        useless.append(task)
+    item = tasks_table.item(selected)
+    old_values = item["values"]
 
-# редактирование задач
-def change_task():
-    """Тапсырманың атын, датасын, приоритетін өзгерту"""
-    print(' ')
-    print('Тапсырманың тізімдері:')
-    for i in tasks:
-        print(i)
+    new_name = name_entry.get()
+    new_priority = priority_combo.get()
+    new_day = day_entry.get()
 
-    name = input('Қандай атты тапсырманы өзгертесін? ')
-    task = find_task(name)
+    # если пусто — оставляем старое
+    if not new_name:
+        new_name = old_values[0]
 
-    new_name = input("Жаңа ат (Enter если не менять): ")
-    new_priority = input("Жаңа приоритет: ")
+    if not new_priority:
+        new_priority = old_values[1]
 
-    now_ded = dt.datetime.now()
-    year = now_ded.year
-    month = now_ded.month
-    print(calendar.month(year, month))
-    new_ded = input("Жаңа дедлайн күні: ")
+    if not new_day:
+        new_deadline = old_values[2]
+    else:
+        now = dt.datetime.now()
+        new_deadline = f"{new_day}-{now.month}-{now.year}"
 
-    if new_name:
-        task['аты'] = new_name
-    if new_priority:
-        del_old_task(task, new_priority)
-        task['приоритет'] = new_priority
-    if new_ded:
-        task['дедлайн'] = '{}-{}-{}'.format(new_ded, month, year)
+    # обновляем строку в таблице
+    tasks_table.item(selected, values=(
+        new_name,
+        new_priority,
+        new_deadline
+    ))
 
-# удаление задач 
-def delete():
-    """Тапсырманың атын толығымен жою"""
-    print(' ')
-    print('Тапсырманың тізімдері:')
-    for i in tasks:
-        print(i)
+def delete_task(tasks_table):
+    selected = tasks_table.selection()
 
-    name = input('Қандай атты тапсырманы өшіресіз? ')
-    task = find_task(name)
+    if not selected:
+        return
 
-    new_priority = ''
-    del_old_task(task, new_priority)
+    tasks_table.delete(selected)
 
 def main():
     root = Tk()
     root.title('Task-manager')
     root.geometry('270x350')
     
-    tasks.append(important)
-    tasks.append(notImportant)
-    tasks.append(useless)
+    label = ttk.Label(root, text='Тапсырмалар')
+    label.grid(row=0, column=0, columnspan=3, sticky="ew")
 
-    for i in range(len(tasks)):
-        tasks[i] = quick_sort(tasks[i], 'аты')
+    # поле ввода
+    name_entry = ttk.Entry(root)
+    name_entry.grid(row=1, column=0, sticky="ew")
 
-    print(' ')
-    print('Тапсырманың тізімдері:')
-    for i in tasks:
-        print(i)
+    priority_combo = ttk.Combobox(
+        root,
+        values=['маңызды', 'маңызды емес', 'керек жоқ']
+    )
+    priority_combo.grid(row=1, column=1, sticky="ew")
 
-    label = ttk.Label(text='Тапсырмалар')
-    label.grid(row=0, column=1)
+    day_entry = ttk.Entry(root)
+    day_entry.grid(row=1, column=2, sticky="ew")
 
-    # интерфейс показывающая список задач
-    tasks_var = Variable(value=important)
-    tasks_listbox = Listbox(listvariable=tasks_var)
-    tasks_listbox.grid(row=1, columnspan=3)
+    # список задач
+    columns = ("name", "priority", "deadline")
 
-    root.columnconfigure(index=1, weight=1)
-    btn = ttk.Button(text="Удалить", command=delete) # кнопка удаление в интерфейсе
-    btn.grid(row=2, column=0, ipadx=6, ipady=6, sticky="W")
+    tasks_table = ttk.Treeview(root, columns=columns, show="headings")
 
-    root.columnconfigure(index=2, weight=1)
-    btn = ttk.Button(text="Добавить", command=add_task_to_list) # кнопка добавление в интерфейсе
-    btn.grid(row=2, column=1, ipadx=6, ipady=6)
+    tasks_table.heading("name", text="Аты")
+    tasks_table.heading("priority", text="Приоритет")
+    tasks_table.heading("deadline", text="Дедлайн")
 
-    root.columnconfigure(index=3, weight=1)
-    btn = ttk.Button(text="Редактировать", command=change_task) # кнопка редактирование в интерфейсе
-    btn.grid(row=2, column=2, ipadx=6, ipady=6, sticky="E")
+    tasks_table.column("name", anchor="center")
+    tasks_table.column("priority", anchor="center")
+    tasks_table.column("deadline", anchor="center")
 
+    tasks_table.grid(row=2, column=0, columnspan=3, sticky="nsew")
+
+    # делаем строки и колонки растягиваемыми
+    root.columnconfigure(0, weight=1)
+    root.columnconfigure(1, weight=1)
+    root.columnconfigure(2, weight=1)
+    root.rowconfigure(2, weight=1)
+
+    # кнопки
+    btn_delete = ttk.Button(root, text="Удалить", command=lambda: delete_task(tasks_table))
+    btn_delete.grid(row=3, column=0, sticky="ew")
+
+    btn_add = ttk.Button(
+        root,
+        text="Добавить",
+        command=lambda: add_task_to_list(
+            name_entry,
+            tasks_table,
+            priority_combo,
+            day_entry
+        )
+    )
+    btn_add.grid(row=3, column=1, sticky="ew")
+
+    btn_edit = ttk.Button(root, text="Редактировать", command=lambda: change_task(
+        tasks_table,
+        name_entry,
+        priority_combo,
+        day_entry
+    ))
+    btn_edit.grid(row=3, column=2, sticky="ew")
     root.mainloop()
 
 if __name__=='__main__':
